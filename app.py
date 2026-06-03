@@ -162,8 +162,10 @@ async def inbound(request: Request, db: Session = Depends(get_db)) -> JSONRespon
 
     # 10. Stripe charge
     if is_new_user:
-        # First invoice is free; send welcome with setup link
-        setup_url = f"{settings.base_url}/setup?token={user.setup_token}"
+        base = settings.base_url.rstrip("/")
+        if not base.startswith("http"):
+            base = f"https://{base}"
+        setup_url = f"{base}/setup?token={user.setup_token}"
         await emailer.send_welcome(from_email, setup_url)
     elif user.stripe_customer_id:
         try:
@@ -176,8 +178,14 @@ async def inbound(request: Request, db: Session = Depends(get_db)) -> JSONRespon
             db.commit()
             await notifier.payment_failed(invoice_number, from_email, str(exc))
     else:
-        setup_url = f"{settings.base_url}/setup?token={user.setup_token}"
-        stripe_handler.create_payment_link(user, invoice, setup_url)
+        try:
+            base = settings.base_url.rstrip("/")
+            if not base.startswith("http"):
+                base = f"https://{base}"
+            setup_url = f"{base}/setup?token={user.setup_token}"
+            stripe_handler.create_payment_link(user, invoice, setup_url)
+        except Exception as exc:
+            logger.error("Stripe payment link failed: %s", exc)
 
     # 11. Telegram notification
     await notifier.invoice_sent(invoice_number, recipient_display, float(invoice.amount_total))
