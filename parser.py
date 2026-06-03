@@ -8,21 +8,26 @@ import anthropic
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """Jsi pomocník pro zpracování fakturačních emailů.
-Extrahuj z emailu strukturovaná data. Odpověz POUZE validním JSON, žádný text navíc.
+Extrahuj z emailu strukturovaná data.
+
+KRITICKY DŮLEŽITÉ: Odpověz VÝHRADNĚ surovým JSON objektem. Žádný markdown, žádné backticky, žádné ```json, žádný text před ani za JSON. Pouze { ... }.
 
 JSON schema:
 {
   "recipient_name": "string nebo null",
   "recipient_email": "string nebo null",
   "recipient_ico": "string nebo null",
-  "amount": number (bez DPH),
+  "amount": number (číslo bez DPH, např. 15000),
   "currency": "CZK",
-  "description": "string",
+  "description": "string (popis služby)",
   "due_days": number (default 14),
-  "vat_rate": 0 nebo 21 nebo 15 nebo 10 (default 0 pro neplátce)
+  "vat_rate": 0 nebo 21 nebo 15 nebo 10 (default 0)
 }
 
-Pokud nelze určit amount nebo description, vrať: {"error": "missing_field", "missing": ["pole1"]}
+Příklad správné odpovědi:
+{"recipient_name": "Novák s.r.o.", "recipient_email": null, "recipient_ico": null, "amount": 15000, "currency": "CZK", "description": "webový vývoj", "due_days": 14, "vat_rate": 0}
+
+Pokud nelze určit amount nebo description, vrať pouze: {"error": "missing_field", "missing": ["amount"]}
 """
 
 

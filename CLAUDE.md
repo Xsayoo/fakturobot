@@ -7,7 +7,7 @@ OSVČ pošle email → systém vytvoří PDF fakturu → odešle ji klientovi �
 
 ## Tech stack
 - **Framework:** FastAPI (Python 3.11+)
-- **AI parsing:** Anthropic Claude API (claude-sonnet-4-20250514)
+- **AI parsing:** Anthropic Claude API (claude-haiku-4-5-20251001)
 - **PDF:** WeasyPrint + Jinja2 šablona
 - **Email příjem:** Postmark Inbound webhook
 - **Email odesílání:** Postmark Outbound (transactional)
@@ -239,3 +239,15 @@ SECRET_KEY=
 - [x] Nový zákazník dostane welcome email se setup linkem — `emailer.send_welcome()` při `is_new_user`
 - [x] `/health` endpoint vrací 200 — implementováno v `app.py`
 - [x] Všechny testy zelené — `test_parser.py` 12/12 passed; `test_generator.py` vyžaduje GTK3 na Windows (`C:\Program Files\GTK3-Runtime Win64\bin` v PATH), na Railway/Linux funguje bez konfigurace
+- [x] Deploy na Railway — `fakturobot-production.up.railway.app`, Dockerfile builder, GTK3 přes apt-get
+- [x] Postmark schválen — odesílání na libovolné emaily povoleno
+- [x] Stripe webhook nakonfigurován — `whsec_...` v Railway Variables
+- [x] Supabase PostgreSQL připojena — Session Pooler (IPv4 kompatibilní)
+
+## Produkční nasazení
+- **URL:** `https://fakturobot-production.up.railway.app`
+- **Inbound email:** `550326f415fa5facaf8f443ead633d5b@inbound.postmarkapp.com`
+- **GitHub:** `https://github.com/Xsayoo/fakturobot`
+- **Parser model:** `claude-haiku-4-5-20251001` (odpovídá v markdown code blocích — parser stripuje backticky)
+- **Pozor:** Claude vrací JSON zabalený v \`\`\`json ... \`\`\` — parser.py to ošetřuje strip logikou
+- **PORT:** Railway nastavuje na 8080, doména musí mířit na port 8080 (ne default 5000)
