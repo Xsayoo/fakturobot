@@ -93,7 +93,11 @@ async def inbound(request: Request, db: Session = Depends(get_db)) -> JSONRespon
     # 5. Generate invoice number
     year = datetime.now(timezone.utc).year
     count = db.query(Invoice).filter(Invoice.user_id == user.id).count() + 1
-    invoice_number = f"{year}-{count:04d}"
+    while True:
+        invoice_number = f"{year}-{count:04d}"
+        if not db.query(Invoice).filter(Invoice.invoice_number == invoice_number).first():
+            break
+        count += 1
 
     # 6. Build invoice record
     issued_at = datetime.now(timezone.utc)
