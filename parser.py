@@ -52,6 +52,7 @@ async def parse_email(email_text: str, api_key: str) -> Union[InvoiceData, Parse
     client = anthropic.AsyncAnthropic(api_key=api_key)
 
     try:
+        logger.error("DEBUG: calling Claude model with email: %s", email_text[:100])
         message = await client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=512,
@@ -59,16 +60,21 @@ async def parse_email(email_text: str, api_key: str) -> Union[InvoiceData, Parse
             messages=[{"role": "user", "content": email_text}],
         )
 
+        logger.error("DEBUG: Claude response content blocks: %s", [(b.type, getattr(b, 'text', '')[:50]) for b in message.content])
+
         raw = next(
             (block.text for block in message.content if block.type == "text"),
             ""
         ).strip()
-        logger.info("Claude raw response: %s", raw)
+        logger.error("DEBUG: raw text: %r", raw[:200])
+
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
             raw = raw.strip()
+            logger.error("DEBUG: after strip: %r", raw[:200])
+
         data = json.loads(raw)
 
         if "error" in data:
@@ -86,8 +92,11 @@ async def parse_email(email_text: str, api_key: str) -> Union[InvoiceData, Parse
         )
 
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
-        logger.error("Failed to parse Claude response: %s", exc)
+        logger.error("Failed to parse Claude response: %s | raw was: %r", exc, locals().get('raw', 'N/A'))
         return ParseError(missing=["amount", "description"])
     except anthropic.APIError as exc:
         logger.error("Anthropic API error: %s", exc)
+        return ParseError(missing=["amount", "description"])
+    except Exception as exc:
+        logger.error("Unexpected parser error: %s", exc, exc_info=True)
         return ParseError(missing=["amount", "description"])
